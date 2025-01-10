@@ -1530,7 +1530,7 @@ std::unique_ptr<AutomapTile[]> LoadAutomapData(size_t &tileCount)
 
 bool AutomapActive;
 AutomapType CurrentAutomapType = AutomapType::Opaque;
-uint8_t AutomapView[DMAXX][DMAXY];
+extern uint8_t AutomapView[DMAXX][DMAXY];
 int AutoMapScale;
 int MinimapScale;
 Displacement AutomapOffset;
