@@ -216,17 +216,10 @@ struct SpellCastInfo {
 	int spellLevel;
 };
 
-struct Player {
-	Player() = default;
-	Player(Player &&) noexcept = default;
-	Player &operator=(Player &&) noexcept = default;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wpadded"
 
-	char _pName[PlayerNameLength];
-	Item InvBody[NUM_INVLOC];
-	Item InvList[InventoryGridCells];
-	Item SpdList[MaxBeltItems];
-	Item HoldItem;
-
+struct player_state {
 	int lightId;
 
 	int _pNumInv;
@@ -265,6 +258,25 @@ struct Player {
 	int _pILMaxDam;
 	uint32_t _pExperience;
 	PLR_MODE _pmode;
+	char padding1[3];
+
+	ActorPosition position;
+	char padding2[2];
+};
+
+#pragma GCC diagnostic pop
+
+struct Player: public player_state {
+	Player() = default;
+	Player(Player &&) noexcept = default;
+	Player &operator=(Player &&) noexcept = default;
+
+	char _pName[PlayerNameLength];
+	Item InvBody[NUM_INVLOC];
+	Item InvList[InventoryGridCells];
+	Item SpdList[MaxBeltItems];
+	Item HoldItem;
+
 	int8_t walkpath[MaxPathLength];
 	bool plractive;
 	action_id destAction;
@@ -273,6 +285,7 @@ struct Player {
 	int destParam3;
 	int destParam4;
 	int _pGold;
+
 
 	/**
 	 * @brief Contains Information for current Animation
@@ -305,7 +318,6 @@ struct Player {
 
 	uint8_t plrlevel;
 	bool plrIsOnSetLevel;
-	ActorPosition position;
 	Direction _pdir; // Direction faced by player (direction enum)
 	HeroClass _pClass;
 
