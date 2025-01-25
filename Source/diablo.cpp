@@ -2573,6 +2573,10 @@ int DiabloMain(int argc, char **argv)
 	LuaInitialize();
 	SaveOptions();
 
+	if (*GetOptions().Gameplay.shareGameState)
+		// Share whole diablo state
+		shared::share_diablo_state(paths::ConfigPath());
+
 	// Finally load game data
 	LoadGameArchives();
 
@@ -3333,6 +3337,74 @@ inject_sdl_events(enum ring_entry_type new_type)
 	}
 }
 
+static void update_shared_state(void)
+{
+	shared::game_tick++;
+	// Make a copy
+	shared::player = *MyPlayer;
+
+#ifdef DELAY
+	int objs = 0;
+
+	for (auto oi : ActiveObjects) {
+		auto &obj = Objects[oi];
+		if (obj.IsBarrel() && obj.selectionRegion != SelectionRegion::None) {
+			objs++;
+		}
+	}
+
+	static int should_stop;
+
+	if (should_stop) {
+		printf(">>> DELAYED: fut %d:%d, tile %d:%d, barrels %d, currentFrame %d, numberOfFrames %d\n",
+			   MyPlayer->position.future.x,
+			   MyPlayer->position.future.y,
+			   MyPlayer->position.tile.x,
+			   MyPlayer->position.tile.y,
+			   objs,
+			   MyPlayer->AnimInfo.currentFrame,
+			   MyPlayer->AnimInfo.numberOfFrames);
+		SDL_Delay(300);
+		should_stop--;
+	}
+#endif
+
+	static bool release_keys;
+
+	//XXX
+	if (release_keys) {
+		release_keys = false;
+
+		inject_sdl_events((enum ring_entry_type)0);
+	}
+
+	struct ring_entry *entry;
+	entry = ring_queue_get_entry_to_retreive(&shared::input_queue);
+	if (entry) {
+#ifdef DELAY
+		printf("\n>>> EVENT %x, fut %d:%d, tile %d:%d, barrels %d\n",
+			   entry->type,
+			   MyPlayer->position.future.x,
+			   MyPlayer->position.future.y,
+			   MyPlayer->position.tile.x,
+			   MyPlayer->position.tile.y,
+			   objs);
+#endif
+		inject_sdl_events((enum ring_entry_type)entry->type);
+		ring_queue_retrieve(&shared::input_queue);
+
+		if (entry->type != 0)
+			release_keys = true;
+
+#ifdef DELAY
+		should_stop = 20;
+		if (entry->type == 0)
+			printf(">>> RECEIVED RELEASE\n");
+#endif
+	}
+
+}
+
 bool game_loop(bool bStartup)
 {
 	uint16_t wait = bStartup ? sgGameInitInfo.nTickRate * 3 : 3;
@@ -3350,16 +3422,8 @@ bool game_loop(bool bStartup)
 			break;
 	}
 
-	using namespace shared;
-	game_tick++;
-	player = *MyPlayer;
-
-	struct ring_entry *entry;
-	entry = ring_queue_get_entry_to_retreive(&input_queue);
-	if (entry) {
-		inject_sdl_events((enum ring_entry_type)entry->type);
-		ring_queue_retrieve(&input_queue);
-	}
+	if (*GetOptions().Gameplay.shareGameState)
+		update_shared_state();
 
 	return true;
 }

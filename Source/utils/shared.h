@@ -10,6 +10,7 @@ namespace shared {
 	extern struct ring_queue   events_queue;
 	extern uint64_t            game_tick;
 	extern struct player_state player;
-}
 
+	void share_diablo_state(const std::string &path);
+}
 }

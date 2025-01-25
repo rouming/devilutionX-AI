@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/mman.h>
 
+#include <string>
+
 #include "items.h"
 #include "monster.h"
 #include "levels/gendung.h"
@@ -46,31 +48,53 @@ static struct entry_ptr *registered_ptr;
  * Here we define all variables which should be shared
  */
 namespace shared {
-	DEFINE_VAR(4, uint16_t[2], maxdun);
-	DEFINE_VAR(4, uint16_t[2], dmax);
+	DEFINE_VAR(2, uint16_t[2], maxdun);
+	DEFINE_VAR(2, uint16_t[2], dmax);
 	DEFINE_VAR(4, uint32_t, max_monsters);
+	DEFINE_VAR(4, uint32_t, max_objects);
+	DEFINE_VAR(4, uint32_t, max_tiles);
+	DEFINE_VAR(4, uint32_t, max_items);
 	DEFINE_VAR(4, uint32_t, num_mtypes);
+	DEFINE_VAR(4, uint32_t, padding1);
 	DEFINE_VAR(4, struct ring_queue, input_queue);
 	DEFINE_VAR(4, struct ring_queue, events_queue);
 	DEFINE_VAR(4, struct player_state, player);
 	DEFINE_VAR(8, uint64_t, game_tick);
 }
+
 /* monsters.cpp */
 DEFINE_VAR(8, size_t, LevelMonsterTypeCount);
 DEFINE_VAR(8, size_t, ActiveMonsterCount);
-DEFINE_VAR(4, Monster[MaxMonsters], Monsters);
+DEFINE_VAR(8, Monster[MaxMonsters], Monsters);
 DEFINE_VAR(4, unsigned[MaxMonsters], ActiveMonsters);
 DEFINE_VAR(4, int[NUM_MTYPES], MonsterKillCounts);
 
-/* items.cpp, gendung.cpp, automap.cpp */
-DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dItem);
-DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dTransVal);
-DEFINE_VAR(4, DungeonFlag[MAXDUNX][MAXDUNY], dFlags);
-DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dPlayer);
-DEFINE_VAR(4, int16_t[MAXDUNX][MAXDUNY], dMonster);
-DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dCorpse);
-DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dObject);
-DEFINE_VAR(4, uint8_t[DMAXX][DMAXY], AutomapView);
+/* objects.cpp */
+DEFINE_VAR(4, Object[MAXOBJECTS], Objects);
+DEFINE_VAR(4, int[MAXOBJECTS], AvailableObjects);
+DEFINE_VAR(4, int[MAXOBJECTS], ActiveObjects);
+DEFINE_VAR(4, int, ActiveObjectCount);
+DEFINE_VAR(4, uint32_t, padding2);
+
+/* items.cpp */
+DEFINE_VAR(4, Item[MAXITEMS + 1], Items);
+DEFINE_VAR(1, uint8_t[MAXITEMS], ActiveItems);
+DEFINE_VAR(1, uint8_t, ActiveItemCount);
+DEFINE_VAR(1, int8_t[MAXDUNX][MAXDUNY], dItem);
+
+/* gendung.cpp */
+DEFINE_VAR(1, int8_t[MAXDUNX][MAXDUNY], dTransVal);
+DEFINE_VAR(1, DungeonFlag[MAXDUNX][MAXDUNY], dFlags);
+DEFINE_VAR(1, int8_t[MAXDUNX][MAXDUNY], dPlayer);
+DEFINE_VAR(2, int16_t[MAXDUNX][MAXDUNY], dMonster);
+DEFINE_VAR(1, int8_t[MAXDUNX][MAXDUNY], dCorpse);
+DEFINE_VAR(1, int8_t[MAXDUNX][MAXDUNY], dObject);
+DEFINE_VAR(2, uint16_t[MAXDUNX][MAXDUNY], dPiece);
+DEFINE_VAR(1, int8_t[MAXDUNX][MAXDUNY], dSpecial);
+DEFINE_VAR(1, TileProperties[MAXTILES], SOLData);
+
+/* automap.cpp */
+DEFINE_VAR(1, uint8_t[DMAXX][DMAXY], AutomapView);
 
 
 /*
@@ -115,37 +139,18 @@ static void verify_no_padding(void)
 		prev = ptr;
 	}
 	assert(prev->addr <= &shared_section_end);
-}
-
-static void do_init_after_map(void)
-{
-	using namespace shared;
-
-	maxdun[0] = MAXDUNX;
-	maxdun[1] = MAXDUNY;
-	dmax[0] = DMAXX;
-	dmax[1] = DMAXY;
-	max_monsters = MaxMonsters;
-	num_mtypes = NUM_MTYPES;
-
-	ring_queue_init(&input_queue);
-	ring_queue_init(&events_queue);
-}
-
-__attribute__((constructor))
-static void do_map(void)
-{
-	int fd, ret;
-	void *addr;
-	size_t len;
-
-	verify_no_padding();
 
 #if 0
 	using namespace shared;
 
-	printf(">> sizeof(struct ActorPosition)=%ld\n",
-		   sizeof(struct ActorPosition));
+	printf(">> %ld, %ld, %ld, %ld, %ld\n",
+		   sizeof(struct Monster),
+		   sizeof(AnimationInfo),
+		   (size_t)&((struct AnimationInfo *)0)->ticksPerFrame,
+		   (size_t)&((struct AnimationInfo *)0)->isPetrified,
+		   (size_t)&((struct AnimationInfo *)0)->relevantFramesForDistributing_
+
+		);
 
 	printf(">> Player size=%ld, _pNumInv=%ld, _pmode=%ld\n",
 		   sizeof(player),
@@ -157,11 +162,40 @@ static void do_map(void)
 
 	exit(0);
 #endif
+}
+
+static void do_init_after_map(void)
+{
+	using namespace shared;
+
+	maxdun[0] = MAXDUNX;
+	maxdun[1] = MAXDUNY;
+	dmax[0] = DMAXX;
+	dmax[1] = DMAXY;
+	max_monsters = MaxMonsters;
+	max_objects  = MAXOBJECTS;
+	max_tiles    = MAXTILES;
+	max_items    = MAXITEMS;
+	num_mtypes   = NUM_MTYPES;
+
+	ring_queue_init(&input_queue);
+	ring_queue_init(&events_queue);
+}
+
+void shared::share_diablo_state(const std::string &path_str)
+{
+	char path[PATH_MAX];
+	int fd, ret;
+	void *addr;
+	size_t len;
+
+	verify_no_padding();
 
 	len = (char *)&shared_section_end - (char *)&shared_section_start;
 
-	fd = open("/tmp/diablo.shared", O_CREAT | O_TRUNC | O_RDWR,
-				  S_IRUSR | S_IWUSR);
+	snprintf(path, sizeof(path), "%s/shared.mem", path_str.c_str());
+	fd = open(path, O_CREAT | O_RDWR,
+			  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
 	if (fd < 0) {
 		perror("open: ");
 		exit(1);

@@ -15,6 +15,7 @@
 #include "engine/demomode.h"
 #include "headless_mode.hpp"
 #include "menu.h"
+#include "pfile.h"
 #include "options.h"
 #include "utils/stubs.h"
 #include "utils/utf8.hpp"
@@ -128,7 +129,37 @@ bool SNetInitializeProvider(uint32_t provider, struct GameData *gameData)
 	std::lock_guard<SdlMutex> lg(storm_net_mutex);
 #endif
 	dvlnet_inst = net::abstract_net::MakeNet(provider);
-	return (HeadlessMode && !demo::IsRunning()) || mainmenu_select_hero_dialog(gameData);
+	if (HeadlessMode && !demo::IsRunning()) {
+
+		devilution::_uidefaultstats defaults;
+		HeroClass heroClass = HeroClass::Warrior;
+
+		pfile_ui_set_class_stats(heroClass, &defaults);
+
+		devilution::_uiheroinfo selhero_heroInfo;
+
+		selhero_heroInfo.level = 1;
+		selhero_heroInfo.heroclass = heroClass;
+		selhero_heroInfo.strength = defaults.strength;
+		selhero_heroInfo.magic = defaults.magic;
+		selhero_heroInfo.dexterity = defaults.dexterity;
+		selhero_heroInfo.vitality = defaults.vitality;
+		strcpy(selhero_heroInfo.name, "AI Agent");
+
+		selhero_heroInfo.saveNumber = 0;//pfile_ui_get_first_unused_save_num();
+
+		//pSaveNumberFromOptions = gbIsHellfire ? &GetOptions().Hellfire.lastSinglePlayerHero : &GetOptions().Diablo.lastSinglePlayerHero;
+		//gSaveNumber = **pSaveNumberFromOptions;
+
+		gSaveNumber = selhero_heroInfo.saveNumber;
+
+		gameData->nDifficulty = DIFF_NORMAL;
+		pfile_ui_save_create(&selhero_heroInfo);
+
+		return true;
+	} else {
+		return mainmenu_select_hero_dialog(gameData);
+	}
 }
 
 /**
