@@ -3352,6 +3352,7 @@ bool game_loop(bool bStartup)
 
 	using namespace shared;
 	game_tick++;
+	// Make a copy
 	player = *MyPlayer;
 
 	struct ring_entry *entry;

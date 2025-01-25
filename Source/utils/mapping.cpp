@@ -46,10 +46,12 @@ static struct entry_ptr *registered_ptr;
  * Here we define all variables which should be shared
  */
 namespace shared {
-	DEFINE_VAR(4, uint16_t[2], maxdun);
-	DEFINE_VAR(4, uint16_t[2], dmax);
-	DEFINE_VAR(4, uint32_t, max_monsters);
-	DEFINE_VAR(4, uint32_t, num_mtypes);
+	DEFINE_VAR(2, uint16_t[2], maxdun);
+	DEFINE_VAR(2, uint16_t[2], dmax);
+	DEFINE_VAR(2, uint16_t, max_monsters);
+	DEFINE_VAR(2, uint16_t, max_objects);
+	DEFINE_VAR(2, uint16_t, max_tiles);
+	DEFINE_VAR(2, uint16_t, num_mtypes);
 	DEFINE_VAR(4, struct ring_queue, input_queue);
 	DEFINE_VAR(4, struct ring_queue, events_queue);
 	DEFINE_VAR(4, struct player_state, player);
@@ -62,6 +64,9 @@ DEFINE_VAR(4, Monster[MaxMonsters], Monsters);
 DEFINE_VAR(4, unsigned[MaxMonsters], ActiveMonsters);
 DEFINE_VAR(4, int[NUM_MTYPES], MonsterKillCounts);
 
+/* objects.cpp */
+DEFINE_VAR(4, Object[MAXOBJECTS], Objects);
+
 /* items.cpp, gendung.cpp, automap.cpp */
 DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dItem);
 DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dTransVal);
@@ -70,7 +75,10 @@ DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dPlayer);
 DEFINE_VAR(4, int16_t[MAXDUNX][MAXDUNY], dMonster);
 DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dCorpse);
 DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dObject);
+DEFINE_VAR(4, uint16_t[MAXDUNX][MAXDUNY], dPiece);
+DEFINE_VAR(4, int8_t[MAXDUNX][MAXDUNY], dSpecial);
 DEFINE_VAR(4, uint8_t[DMAXX][DMAXY], AutomapView);
+DEFINE_VAR(4, TileProperties[MAXTILES], SOLData);
 
 
 /*
@@ -126,7 +134,9 @@ static void do_init_after_map(void)
 	dmax[0] = DMAXX;
 	dmax[1] = DMAXY;
 	max_monsters = MaxMonsters;
-	num_mtypes = NUM_MTYPES;
+	max_objects  = MAXOBJECTS;
+	max_tiles    = MAXTILES;
+	num_mtypes   = NUM_MTYPES;
 
 	ring_queue_init(&input_queue);
 	ring_queue_init(&events_queue);
@@ -144,8 +154,15 @@ static void do_map(void)
 #if 0
 	using namespace shared;
 
-	printf(">> sizeof(struct ActorPosition)=%ld\n",
-		   sizeof(struct ActorPosition));
+	printf(">> sizeof(struct object)=%ld, %ld, %ld, %ld, %ld\n",
+		   sizeof(struct Object),
+		   (size_t)&((struct Object *)0)->position,
+		   (size_t)&((struct Object *)0)->_oMissFlag,
+		   (size_t)&((struct Object *)0)->selectionRegion,
+		   (size_t)&((struct Object *)0)->_oPreFlag
+
+
+		);
 
 	printf(">> Player size=%ld, _pNumInv=%ld, _pmode=%ld\n",
 		   sizeof(player),

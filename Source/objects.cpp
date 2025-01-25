@@ -51,7 +51,7 @@
 
 namespace devilution {
 
-Object Objects[MAXOBJECTS];
+extern Object Objects[MAXOBJECTS];
 int AvailableObjects[MAXOBJECTS];
 int ActiveObjects[MAXOBJECTS];
 int ActiveObjectCount;
