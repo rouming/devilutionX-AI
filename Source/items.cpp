@@ -53,9 +53,9 @@
 
 namespace devilution {
 
-Item Items[MAXITEMS + 1];
-uint8_t ActiveItems[MAXITEMS];
-uint8_t ActiveItemCount;
+extern Item Items[MAXITEMS + 1];
+extern uint8_t ActiveItems[MAXITEMS];
+extern uint8_t ActiveItemCount;
 extern int8_t dItem[MAXDUNX][MAXDUNY];
 bool ShowUniqueItemInfoBox;
 CornerStoneStruct CornerStone;

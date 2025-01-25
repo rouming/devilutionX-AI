@@ -258,10 +258,16 @@ struct player_state {
 	int _pILMaxDam;
 	uint32_t _pExperience;
 	PLR_MODE _pmode;
-	char padding1[3];
-
+	action_id destAction;
+	bool plractive;
+	char padding1[1];
 	ActorPosition position;
 	char padding2[2];
+
+	/**
+	 * @brief Contains Information for current Animation
+	 */
+	AnimationInfo AnimInfo;
 };
 
 #pragma GCC diagnostic pop
@@ -278,8 +284,6 @@ struct Player: public player_state {
 	Item HoldItem;
 
 	int8_t walkpath[MaxPathLength];
-	bool plractive;
-	action_id destAction;
 	int destParam1;
 	int destParam2;
 	int destParam3;
@@ -287,10 +291,6 @@ struct Player: public player_state {
 	int _pGold;
 
 
-	/**
-	 * @brief Contains Information for current Animation
-	 */
-	AnimationInfo AnimInfo;
 	/**
 	 * @brief Contains a optional preview ClxSprite that is displayed until the current command is handled by the game logic
 	 */
