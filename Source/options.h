@@ -671,6 +671,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryBoolean noMonsters;
 	/** @brief Skip animation */
 	OptionEntryInt<int> skipAnimation;
+	/** @brief Disable monsters auto-pursuing */
+	OptionEntryBoolean noMonstersAutoPursuing;
 };
 
 struct ControllerOptions : OptionCategoryBase {
