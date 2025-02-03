@@ -890,6 +890,7 @@ GameplayOptions::GameplayOptions()
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
     , shareGameState("Share the whole game state for AI", OptionEntryFlags::Invisible, "", "", false)
     , gameAndPlayerSeed("Game and player initial seed", OptionEntryFlags::Invisible, "", "", -1)
+    , gameLevel("Load player into the level", OptionEntryFlags::Invisible, "", "", 0)
 {
 }
 
@@ -937,6 +938,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&skipLoadingScreenThresholdMs,
 		&shareGameState,
 		&gameAndPlayerSeed,
+		&gameLevel,
 	};
 }
 
