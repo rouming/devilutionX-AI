@@ -94,6 +94,7 @@ enum class FloatingNumbers : uint8_t {
 
 enum class OptionEntryType : uint8_t {
 	Boolean,
+	String,
 	List,
 	Key,
 	PadButton,
@@ -175,6 +176,30 @@ public:
 private:
 	bool defaultValue;
 	bool value;
+};
+
+class OptionEntryString : public OptionEntryBase {
+public:
+	OptionEntryString(std::string_view key, OptionEntryFlags flags, const char *name, const char *description, std::string defaultValue)
+	    : OptionEntryBase(key, flags, name, description)
+	    , defaultValue(defaultValue)
+	    , value(defaultValue)
+	{
+	}
+	[[nodiscard]] std::string operator*() const
+	{
+		return value;
+	}
+	void SetValue(std::string value);
+
+	[[nodiscard]] OptionEntryType GetType() const override;
+	[[nodiscard]] std::string_view GetValueDescription() const override;
+	void LoadFromIni(std::string_view category) override;
+	void SaveToIni(std::string_view category) const override;
+
+private:
+	std::string defaultValue;
+	std::string value;
 };
 
 class OptionEntryListBase : public OptionEntryBase {
@@ -633,6 +658,9 @@ struct GameplayOptions : OptionCategoryBase {
 	 * Advanced option, not displayed in the UI.
 	 */
 	OptionEntryInt<int> skipLoadingScreenThresholdMs;
+
+	/** @brief Share the whole game state for AI via file  */
+	OptionEntryString shareGameStateFilename;
 };
 
 struct ControllerOptions : OptionCategoryBase {
