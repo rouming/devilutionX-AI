@@ -99,6 +99,7 @@
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
+#include "utils/shared.h"
 
 #ifndef USE_SDL1
 #include "controls/touch/gamepad.h"
@@ -2572,6 +2573,10 @@ int DiabloMain(int argc, char **argv)
 	LuaInitialize();
 	SaveOptions();
 
+	if (*GetOptions().Gameplay.shareGameState)
+		// Share whole diablo state
+		shared::share_diablo_state(paths::ConfigPath());
+
 	// Finally load game data
 	LoadGameArchives();
 
@@ -3264,6 +3269,113 @@ tl::expected<void, std::string> LoadGameLevel(bool firstflag, lvl_entry lvldir)
 	return {};
 }
 
+static void
+inject_sdl_events(uint32_t new_type)
+{
+	static uint32_t prev_type;
+
+	unsigned int sdl_type, sdl_sym;
+	SDL_Scancode sdl_scan;
+	unsigned int diff, i;
+	SDL_Event event;
+
+	diff = prev_type ^ new_type;
+	prev_type = new_type;
+
+	for (i = 0; i < sizeof(diff) * 8; i++) {
+		unsigned int bit = (1 << i);
+		if (!(diff & bit))
+			continue;
+
+		sdl_type = (new_type & bit ? SDL_KEYDOWN : SDL_KEYUP);
+
+		if (bit == RING_ENTRY_KEY_LEFT) {
+			sdl_sym  = SDLK_LEFT;
+			sdl_scan = SDL_SCANCODE_LEFT;
+		} else if (bit == RING_ENTRY_KEY_RIGHT) {
+			sdl_sym  = SDLK_RIGHT;
+			sdl_scan = SDL_SCANCODE_RIGHT;
+		}
+		else if (bit == RING_ENTRY_KEY_UP) {
+			sdl_sym  = SDLK_UP;
+			sdl_scan = SDL_SCANCODE_UP;
+		}
+		else if (bit == RING_ENTRY_KEY_DOWN) {
+			sdl_sym  = SDLK_DOWN;
+			sdl_scan = SDL_SCANCODE_DOWN;
+		}
+		else if (bit == RING_ENTRY_KEY_X) {
+			sdl_sym  = SDLK_x;
+			sdl_scan = SDL_SCANCODE_X;
+		}
+		else if (bit == RING_ENTRY_KEY_Y) {
+			sdl_sym  = SDLK_y;
+			sdl_scan = SDL_SCANCODE_Y;
+		}
+		else if (bit == RING_ENTRY_KEY_A) {
+			sdl_sym  = SDLK_a;
+			sdl_scan = SDL_SCANCODE_A;
+		}
+		else if (bit == RING_ENTRY_KEY_B) {
+			sdl_sym  = SDLK_b;
+			sdl_scan = SDL_SCANCODE_B;
+		}
+		else if (bit == RING_ENTRY_KEY_SAVE) {
+			sdl_sym  = SDLK_F2;
+			sdl_scan = SDL_SCANCODE_F2;
+		}
+		else if (bit == RING_ENTRY_KEY_LOAD) {
+			sdl_sym  = SDLK_F3;
+			sdl_scan = SDL_SCANCODE_F3;
+		} else {
+			/* Unknown key */
+			continue;
+		}
+
+		event.type = sdl_type;
+		event.key.keysym.sym = sdl_sym;
+		event.key.keysym.scancode = sdl_scan;
+		event.key.keysym.mod = KMOD_NONE;
+		event.key.repeat = 0;
+
+		if (SDL_PushEvent(&event) < 0) {
+			printf("Failed to push event: %s\n", SDL_GetError());
+		}
+	}
+}
+
+#define barrier() __asm__ __volatile__("": : :"memory")
+
+static void update_shared_state(void)
+{
+	static bool release_keys;
+	struct ring_entry *entry;
+
+	// Make a copy
+	shared::player = *MyPlayer;
+	barrier();
+	// Increase tick right after all states are updated
+	shared::game_tick++;
+
+	// On early start the game state is not completely inited, thus
+	// coming keys may not work. Delay keys processing.
+	if (shared::game_tick < 5)
+		return;
+
+	entry = ring_queue_get_entry_to_retreive(&shared::input_queue);
+	if (entry) {
+		uint32_t keys = entry->type;
+
+		release_keys = (keys & RING_ENTRY_F_SINGLE_TICK_PRESS);
+		keys &= ~RING_ENTRY_FLAGS;
+		inject_sdl_events(keys);
+		ring_queue_retrieve(&shared::input_queue);
+	} else if (release_keys) {
+		release_keys = false;
+		inject_sdl_events(0);
+	}
+}
+
 bool game_loop(bool bStartup)
 {
 	uint16_t wait = bStartup ? sgGameInitInfo.nTickRate * 3 : 3;
@@ -3280,6 +3392,10 @@ bool game_loop(bool bStartup)
 		if (!gbRunGame || !gbIsMultiplayer || demo::IsRunning() || demo::IsRecording() || !nthread_has_500ms_passed())
 			break;
 	}
+
+	if (*GetOptions().Gameplay.shareGameState)
+		update_shared_state();
+
 	return true;
 }
 

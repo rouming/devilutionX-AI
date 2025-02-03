@@ -620,6 +620,9 @@ struct GameplayOptions : OptionCategoryBase {
 	 * Advanced option, not displayed in the UI.
 	 */
 	OptionEntryInt<int> skipLoadingScreenThresholdMs;
+
+	/** @brief Share the whole game state for AI  */
+	OptionEntryBoolean shareGameState;
 };
 
 struct ControllerOptions : OptionCategoryBase {
