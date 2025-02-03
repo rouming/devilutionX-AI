@@ -1156,8 +1156,12 @@ void ApplicationInit()
 	if (*GetOptions().Graphics.showFPS)
 		EnableFrameCount();
 
-	init_create_window();
-	was_window_init = true;
+	if (!HeadlessMode) {
+		init_create_window();
+		was_window_init = true;
+	} else {
+		SDL_Init(SDL_INIT_EVENTS);
+	}
 
 	InitializeScreenReader();
 	LanguageInitialize();
@@ -1205,9 +1209,10 @@ void DiabloInit()
 
 	DiabloInitScreen();
 
-	snd_init();
-
-	ui_sound_init();
+	if (!HeadlessMode) {
+		snd_init();
+		ui_sound_init();
+	}
 
 	// Item graphics are loaded early, they already get touched during hero selection.
 	InitItemGFX();
