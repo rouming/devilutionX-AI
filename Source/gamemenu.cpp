@@ -362,6 +362,13 @@ void gamemenu_save_game(bool /*bActivate*/)
 
 void gamemenu_on()
 {
+	if (HeadlessMode)
+		// Do not show any menu in headless mode, since it is not
+		// visible anyway. More importantly, we are not able to send
+		// any keys (see gmenu_presskeys() check in PressKey()), such
+		// as to load a game for example.
+		return;
+
 	isGameMenuOpen = true;
 	if (!gbIsMultiplayer) {
 		gmenu_set_items(sgSingleMenu, GamemenuUpdateSingle);
