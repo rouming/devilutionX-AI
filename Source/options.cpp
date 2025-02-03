@@ -886,6 +886,7 @@ GameplayOptions::GameplayOptions()
           })
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
     , shareGameState("Share the whole game state for AI", OptionEntryFlags::Invisible, "", "", false)
+    , gameAndPlayerSeed("Game and player initial seed", OptionEntryFlags::Invisible, "", "", -1)
 {
 }
 
@@ -932,6 +933,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&pauseOnFocusLoss,
 		&skipLoadingScreenThresholdMs,
 		&shareGameState,
+		&gameAndPlayerSeed,
 	};
 }
 
