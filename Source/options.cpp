@@ -885,6 +885,7 @@ GameplayOptions::GameplayOptions()
               { FloatingNumbers::Vertical, N_("Vertical Only") },
           })
     , skipLoadingScreenThresholdMs("Skip loading screen threshold, ms", OptionEntryFlags::Invisible, "", "", 0)
+    , shareGameState("Share the whole game state for AI", OptionEntryFlags::Invisible, "", "", false)
 {
 }
 
@@ -930,6 +931,7 @@ std::vector<OptionEntryBase *> GameplayOptions::GetEntries()
 		&grabInput,
 		&pauseOnFocusLoss,
 		&skipLoadingScreenThresholdMs,
+		&shareGameState,
 	};
 }
 
