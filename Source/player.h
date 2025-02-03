@@ -216,17 +216,10 @@ struct SpellCastInfo {
 	int spellLevel;
 };
 
-struct Player {
-	Player() = default;
-	Player(Player &&) noexcept = default;
-	Player &operator=(Player &&) noexcept = default;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wpadded"
 
-	char _pName[PlayerNameLength];
-	Item InvBody[NUM_INVLOC];
-	Item InvList[InventoryGridCells];
-	Item SpdList[MaxBeltItems];
-	Item HoldItem;
-
+struct player_state {
 	int lightId;
 
 	int _pNumInv;
@@ -265,19 +258,41 @@ struct Player {
 	int _pILMaxDam;
 	uint32_t _pExperience;
 	PLR_MODE _pmode;
-	int8_t walkpath[MaxPathLength];
-	bool plractive;
 	action_id destAction;
+	bool plractive;
+	char padding1[1];
+	ActorPosition position;
+	// Use get/setCharacterLevel to ensure this attribute stays within the accepted range
+	uint8_t _pLevel = 1;
+	uint8_t plrlevel;
+
+	/**
+	 * @brief Contains Information for current Animation
+	 */
+	AnimationInfo AnimInfo;
+};
+
+#pragma GCC diagnostic pop
+
+struct Player: public player_state {
+	Player() = default;
+	Player(Player &&) noexcept = default;
+	Player &operator=(Player &&) noexcept = default;
+
+	char _pName[PlayerNameLength];
+	Item InvBody[NUM_INVLOC];
+	Item InvList[InventoryGridCells];
+	Item SpdList[MaxBeltItems];
+	Item HoldItem;
+
+	int8_t walkpath[MaxPathLength];
 	int destParam1;
 	int destParam2;
 	int destParam3;
 	int destParam4;
 	int _pGold;
 
-	/**
-	 * @brief Contains Information for current Animation
-	 */
-	AnimationInfo AnimInfo;
+
 	/**
 	 * @brief Contains a optional preview ClxSprite that is displayed until the current command is handled by the game logic
 	 */
@@ -303,14 +318,9 @@ struct Player {
 	int8_t _pBFrames;
 	int8_t InvGrid[InventoryGridCells];
 
-	uint8_t plrlevel;
 	bool plrIsOnSetLevel;
-	ActorPosition position;
 	Direction _pdir; // Direction faced by player (direction enum)
 	HeroClass _pClass;
-
-private:
-	uint8_t _pLevel = 1; // Use get/setCharacterLevel to ensure this attribute stays within the accepted range
 
 public:
 	uint8_t _pgfxnum; // Bitmask indicating what variant of the sprite the player is using. The 3 lower bits define weapon (PlayerWeaponGraphic) and the higher bits define armour (starting with PlayerArmorGraphic)

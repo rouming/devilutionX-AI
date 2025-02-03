@@ -1,0 +1,44 @@
+# Build with keyboard-as-controller support
+
+
+For Debug:
+   -DCMAKE_BUILD_TYPE=Debug -DASAN=OFF
+
+cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=OFF -DDEBUG=ON -DUSE_SDL1=OFF -DHAS_KBCTRL=1 -DPREFILL_PLAYER_NAME=ON \
+-DKBCTRL_BUTTON_DPAD_LEFT=SDLK_LEFT \
+-DKBCTRL_BUTTON_DPAD_RIGHT=SDLK_RIGHT \
+-DKBCTRL_BUTTON_DPAD_UP=SDLK_UP \
+-DKBCTRL_BUTTON_DPAD_DOWN=SDLK_DOWN \
+-DKBCTRL_BUTTON_X=SDLK_y \
+-DKBCTRL_BUTTON_Y=SDLK_x \
+-DKBCTRL_BUTTON_B=SDLK_a \
+-DKBCTRL_BUTTON_A=SDLK_b \
+-DKBCTRL_BUTTON_RIGHTSHOULDER=SDLK_RIGHTBRACKET \
+-DKBCTRL_BUTTON_LEFTSHOULDER=SDLK_LEFTBRACKET \
+-DKBCTRL_BUTTON_LEFTSTICK=SDLK_TAB \
+-DKBCTRL_BUTTON_START=SDLK_RETURN \
+-DKBCTRL_BUTTON_BACK=SDLK_LSHIFT
+
+
+## To run:
+#   -n - skit startup videos
+#   -f - show FPS
+#   --config-dir <path> - path to the folder with `diablo.ini` conf file
+#   --save-dir <path> - path to the folder with saves
+#   --data-dir <path> - path to origianal Diablo content
+./build/devilutionx -n -f \
+      --config-dir ./diablo-states/cfg \
+	  --save-dir ./diablo-states/cfg \
+	  --data-dir ./diablo-original
+
+
+## Important diablo.ini modifications
+
+[Graphics]
+Fullscreen=0
+Headless=1
+
+[Game]
+Game and player initial seed=0
+Share the whole game state for AI=1
+Load player into the level=1
