@@ -6,13 +6,17 @@ import ctypes
 import curses
 import time
 import sys
-import numpy as np
 from pynput import keyboard
 import enum
 import gc
 import copy
+import tempfile
+import subprocess
 
 import ring
+
+import numpy as np
+import gymnasium as gym
 
 # Flag to control the main loop
 running = True
@@ -610,6 +614,220 @@ def same_ticks(d):
     global last_tick
     diff = d.game_tick - last_tick
     return diff == 0
+
+class DiabloEnv(gym.Env):
+    class ActionEnum(enum.Enum):
+        Stand           = enum.auto()
+        North           = enum.auto()
+        NorthEast       = enum.auto()
+        East            = enum.auto()
+        SouthEast       = enum.auto()
+        South           = enum.auto()
+        SouthWest       = enum.auto()
+        West            = enum.auto()
+        NorthWest       = enum.auto()
+        # Attack monsters, talk to towners, lift and place inventory items.
+        PrimaryAction   = enum.auto()
+        # Open chests, interact with doors, pick up items.
+        SecondaryAction = enum.auto()
+
+    class DungeonFlag(enum.Enum):
+        Player         = 1<<0
+        Wall           = 1<<1
+        Trigger        = 1<<2
+        DoorOpened     = 1<<3
+        DoorClosed     = 1<<4
+        Missile        = 1<<5
+        Monster        = 1<<6
+        Barrel         = 1<<7
+        ChestOpened    = 1<<8
+        ChestClosed    = 1<<9
+        SarcophOpened  = 1<<10
+        SarcophClosed  = 1<<11
+        Item           = 1<<12
+
+    def __init__(self, env_config):
+        self.config = env_config
+        self.seed = env_config["seed"] ^ env_config.worker_index
+
+        cfg_file = open("diablo.ini.tmpl", "r")
+        cfg = cfg_file.read()
+        cfg_file.close()
+        cfg = cfg.format(seed=self.seed)
+
+        prefix = "diablo-%d--" % env_config.worker_index
+        self.state_dir = tempfile.TemporaryDirctory(prefix=prefix)
+        cfg_file = open(self.state_dir.name + "/diablo.ini", "w")
+        cfg_file.write(cfg)
+        cfg_file.close()
+
+        diablo_cmd = [
+            env_config["diablo_bin"], '-n', '-f',
+            '--config-dir', self.state_dir.name,
+            '--save-dir', self.state_dir.name,
+            '--data-dir', env_config["diablo_data_dir"]
+        ]
+        self.diablo_proc = subprocess.Popen(
+            diablo_cmd,
+            stdout=subprocess.DEVNULL,  # Ignore stdout
+            stderr=subprocess.DEVNULL   # Ignore stderr
+        )
+
+        shared_mem_path = os.path.abspath(self.state_dir.name + "/shared.mem")
+        for attempt in range(0, 10):
+            try:
+                # Open the file and map it to memory
+                self.shared_file = open(shared_mem_path, "r+b")
+                self.mmapped = mmap.mmap(shared_file.fileno(), 0)
+                self.diablo = map_DiabloShared(mmapped)
+            except FileNotFoundError:
+                time.sleep(0.1)
+        else:
+            raise FileNotFoundError(shared_mem_path)
+
+        # Submit SAVE
+        entry = diablo.input_queue.get_entry_to_submit()
+        assert entry
+        entry.type = \
+            ring.RingEntryType.RING_ENTRY_KEY_SAVE |
+            ring.RingEntryType.RING_ENTRY_F_SINGLE_TICK_PRESS
+        entry.data = 0
+        diablo.input_queue.submit()
+
+        # Busy-loop for actual key acceptance
+        while diablo.input_queue.nr_entries_to_submit() != \
+              ring.RING_QUEUE_CAPACITY:
+            time.sleep(0.01)
+
+        self.action_space = spaces.Discrete(len(ActionEnum))
+        self.observation_space = gym.spaces.Dict(
+            {
+                "game-state":  gym.spaces.Discrete(3),
+                "environment": gym.spaces.Box(low=0, high=0xff,
+                                              shape=(xx,xx),
+                                              dtype=np.uint8),
+            }
+        )
+
+    def get_game_state(self, d):
+        kills = np.sum(d.MonsterKillCounts_np)
+        hp = d.player._pHitPoints
+        mode = d.player._pmode
+        return np.array([kills, hp, mode])
+
+    def get_environment(self, d):
+        # Full dungeon
+        dun_rect = get_map_rect(d, d.maxdun)
+        env = np.zeros((dun_rect.height, dun_rect.width), dtype=np.uint16)
+
+        for i_off in range(map_rect.width):
+            i = map_rect.lt[0] + i_off
+
+            for j_off in range(map_rect.height):
+                j = map_rect.lt[1] + j_off
+                pos = (i, j)
+                obj = to_object(d, pos)
+
+                s = 0
+                if d.dFlags_np[pos] & DungeonFlag.Explored.value:
+                    if is_wall(d, pos):
+                        s |= DungeonFlag.Wall
+                    if is_trigger(d, pos):
+                        s |= DungeonFlag.Trigger
+                    if obj is not None and is_door(obj):
+                        if is_door_closed(obj):
+                            s |= DungeonFlag.DoorClosed
+                        else:
+                            s |= DungeonFlag.DoorOpened
+
+                if d.dFlags_np[pos] & DungeonFlag.Lit.value:
+                    if d.dFlags_np[pos] & DungeonFlag.Missile.value:
+                        s |= DungeonFlag.Missile
+                    if d.dMonster_np[pos] > 0:
+                        s |= DungeonFlag.Monster
+
+                    if obj is not None:
+                        if is_barrel(obj) and obj._oSolidFlag:
+                            s |= DungeonFlag.Barrel
+                        elif is_chest(obj):
+                            if obj.selectionRegion != 0:
+                                s |= DungeonFlag.ChestClosed
+                            else:
+                                s |= DungeonFlag.ChestOpened
+                        elif is_sarcophagus(obj):
+                            if obj.selectionRegion != 0:
+                                s |= DungeonFlag.SarcophClosed
+                            else:
+                                s |= DungeonFlag.SarcophOpened
+                    if d.dItem_np[pos] > 0:
+                        s |= DungeonFlag.Item
+
+                if pos == (d.player.position.future.x,
+                           d.player.position.future.y):
+                    # Player
+                    s |= DungeonFlag.Player
+
+                env[j_off, i_off] = s
+
+        return env
+
+    def reset(self, *, seed=None, options=None):
+        super().reset(seed=self.seed)
+
+        d = copy.deepcopy(self.diablo)
+        obs = {
+            "game-state":  self.get_game_state(d),
+            "environment": self.get_environment(d),
+        }
+        # Probability is always 1.0, diablo environment is deterministic
+        info = {"prob": 1.0, "action_mask": self.action_mask(d)}
+        return obs, info
+
+    def step(self, action):
+        d = copy.deepcopy(self.diablo)
+        obs = {
+            "game-state":  self.get_game_state(d),
+            "environment": self.get_environment(d),
+        }
+        reward = 1
+        done = False
+        # Flag indicates whether the episode was forcefully stopped
+        # due to a time limit or other constraints not related to task
+        # completion.
+        truncated = False
+
+        # Probability is always 1.0, diablo environment is deterministic
+        info = {"prob": 1.0, "action_mask": self.action_mask(d)}
+        return obs, reward, done, truncated, info
+
+    def action_mask(self, d):
+        """Computes an action mask for the action space using the state information."""
+        mask = np.full(len(ActionEnum), 1, dtype=np.int8)
+
+        # Forbid the way of the coward: never return to town
+        # TODO: for now forbid all triggers
+        for trig in d.trigs[:d.numtrigs]:
+            dist = np.array([trig.position.x - d.player.position.future.x,
+                             trig.position.y - d.player.position.future.y])
+            if np.all(dist == (0, 1)):
+                mask[ActionEnum.South.value] = 0
+            elif np.all(dist == (1, 1)):
+                mask[ActionEnum.SouthWest.value] = 0
+            elif np.all(dist == (1, 0)):
+                mask[ActionEnum.West.value] = 0
+            elif np.all(dist == (1, -1)):
+                mask[ActionEnum.NorthWest.value] = 0
+            elif np.all(dist == (0, -1)):
+                mask[ActionEnum.North.value] = 0
+            elif np.all(dist == (-1, -1)):
+                mask[ActionEnum.NorthEast.value] = 0
+            elif np.all(dist == (-1, 0)):
+                mask[ActionEnum.East.value] = 0
+            elif np.all(dist == (-1, 1)):
+                mask[ActionEnum.NorthWest.value] = 0
+            break
+
+        return mask
 
 def display_diablo_state(stdscr, d_shared, missed_ticks):
     # Unfortunately (performance-wise) we have to make a deep copy to
