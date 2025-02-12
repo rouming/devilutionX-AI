@@ -455,6 +455,8 @@ bool InitSingle(GameData *gameData)
 {
 	Players.resize(1);
 
+	printf(">> %s:%d\n", __func__, __LINE__);
+
 	if (!SNetInitializeProvider(SELCONN_LOOPBACK, gameData)) {
 		return false;
 	}
@@ -503,6 +505,8 @@ bool InitMulti(GameData *gameData)
 	gbIsMultiplayer = true;
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
+
+	printf(">> %s:%d\n", __func__, __LINE__);
 
 	return true;
 }
