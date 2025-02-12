@@ -824,6 +824,8 @@ void RunGameLoop(interface_mode uMsg)
 	gbProcessPlayers = IsDiabloAlive(true);
 	gbRunGameResult = true;
 
+	printf(">> %s\n", __func__);
+
 	RedrawEverything();
 	if (!HeadlessMode) {
 		while (IsRedrawEverything()) {
@@ -2501,6 +2503,9 @@ bool StartGame(bool bNewGame, bool bSinglePlayer)
 	gbSelectProvider = true;
 	ReturnToMainMenu = false;
 
+	printf(">> %s: newgame=%d, single=%d\n", __func__,
+		   bNewGame, bSinglePlayer);
+
 	do {
 		gbLoadGame = false;
 
@@ -2723,8 +2728,10 @@ void diablo_pause_game()
 	if (!gbIsMultiplayer) {
 		if (PauseMode != 0) {
 			PauseMode = 0;
+			printf(">> %s: resumed\n", __func__);
 		} else {
 			PauseMode = 2;
+			printf(">> %s: paused\n", __func__);
 			sound_stop();
 			qtextflag = false;
 			LastMouseButtonAction = MouseActionType::None;
@@ -3330,12 +3337,21 @@ inject_sdl_events(uint32_t new_type)
 		} else if (bit == RING_ENTRY_KEY_SAVE) {
 			sdl_sym  = SDLK_F2;
 			sdl_scan = SDL_SCANCODE_F2;
+
+			if (sdl_type == SDL_KEYDOWN)
+				printf(">> %s: received SAVE\n", __func__);
 		} else if (bit == RING_ENTRY_KEY_LOAD) {
 			sdl_sym  = SDLK_F3;
 			sdl_scan = SDL_SCANCODE_F3;
+
+			if (sdl_type == SDL_KEYDOWN)
+				printf(">> %s: received LOAD\n", __func__);
 		} else if (bit == RING_ENTRY_KEY_PAUSE) {
 			sdl_sym  = SDLK_PAUSE;
 			sdl_scan = SDL_SCANCODE_PAUSE;
+
+			if (sdl_type == SDL_KEYDOWN)
+				printf(">> %s: received PAUSE\n", __func__);
 		} else {
 			/* Unknown key */
 			continue;
