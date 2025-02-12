@@ -452,9 +452,13 @@ bool InitSingle(GameData *gameData)
 {
 	Players.resize(1);
 
+	printf(">> %s:%d\n", __func__, __LINE__);
+
 	if (!SNetInitializeProvider(SELCONN_LOOPBACK, gameData)) {
 		return false;
 	}
+
+	printf(">> %s:%d\n", __func__, __LINE__);
 
 	int unused = 0;
 	GameData gameInitInfo = sgGameInitInfo;
@@ -463,10 +467,14 @@ bool InitSingle(GameData *gameData)
 		app_fatal(StrCat("SNetCreateGame1:\n", SDL_GetError()));
 	}
 
+	printf(">> %s:%d\n", __func__, __LINE__);
+
 	MyPlayerId = 0;
 	MyPlayer = &Players[MyPlayerId];
 	InspectPlayer = MyPlayer;
 	gbIsMultiplayer = false;
+
+	printf(">> %s:%d, savenumber=%d\n", __func__, __LINE__, gSaveNumber);
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
 
@@ -500,6 +508,8 @@ bool InitMulti(GameData *gameData)
 	gbIsMultiplayer = true;
 
 	pfile_read_player_from_save(gSaveNumber, *MyPlayer);
+
+	printf(">> %s:%d\n", __func__, __LINE__);
 
 	return true;
 }
@@ -769,23 +779,38 @@ void NetClose()
 bool NetInit(bool bSinglePlayer)
 {
 	while (true) {
+
+		printf(">> %s:%d\n", __func__, __LINE__);
+
 		SetRndSeed(0);
 		InitGameInfo();
+
+		printf(">> %s:%d\n", __func__, __LINE__);
+		
 		memset(sgbPlayerTurnBitTbl, 0, sizeof(sgbPlayerTurnBitTbl));
 		gbGameDestroyed = false;
 		memset(sgbPlayerLeftGameTbl, 0, sizeof(sgbPlayerLeftGameTbl));
 		memset(sgdwPlayerLeftReasonTbl, 0, sizeof(sgdwPlayerLeftReasonTbl));
 		memset(sgbSendDeltaTbl, 0, sizeof(sgbSendDeltaTbl));
 		Players.clear();
+		printf(">> %s:%d\n", __func__, __LINE__);
+		
 		MyPlayer = nullptr;
 		memset(sgwPackPlrOffsetTbl, 0, sizeof(sgwPackPlrOffsetTbl));
 		SNetSetBasePlayer(0);
+		
+		printf(">> %s:%d\n", __func__, __LINE__);
 		if (bSinglePlayer) {
+			printf(">> %s:%d\n", __func__, __LINE__);
 			if (!InitSingle(&sgGameInitInfo))
 				return false;
+			printf(">> %s:%d\n", __func__, __LINE__);
 		} else {
+			printf(">> %s:%d\n", __func__, __LINE__);
 			if (!InitMulti(&sgGameInitInfo))
 				return false;
+
+			printf(">> %s:%d\n", __func__, __LINE__);
 		}
 		sgbNetInited = true;
 		sgbTimeout = false;

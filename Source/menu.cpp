@@ -155,6 +155,8 @@ void mainmenu_loop()
 		else if (!UiMainMenuDialog(gszProductName, &menu, 30))
 			app_fatal(_("Unable to display mainmenu"));
 
+		printf(">> MENU %d\n", menu);
+
 		switch (menu) {
 		case MAINMENU_NONE:
 			break;
