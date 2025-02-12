@@ -301,6 +301,8 @@ void gamemenu_quit_game(bool bActivate)
 
 void gamemenu_load_game(bool /*bActivate*/)
 {
+	printf(">> %s:%d\n", __func__, __LINE__);
+
 	EventHandler saveProc = SetEventHandler(DisableInputEventHandler);
 	gamemenu_off();
 	ClearFloatingNumbers();
@@ -337,6 +339,8 @@ void gamemenu_load_game(bool /*bActivate*/)
 
 void gamemenu_save_game(bool /*bActivate*/)
 {
+	printf(">> %s:%d\n", __func__, __LINE__);
+
 	if (pcurs != CURSOR_HAND) {
 		return;
 	}
