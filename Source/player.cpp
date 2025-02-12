@@ -768,6 +768,10 @@ bool DoAttack(Player &player)
 		PlaySfxLoc(SfxID::Swing, player.position.tile);
 	}
 
+	printf(">>> DO ATTACK: currentFrame %d, _pAFNum %d\n",
+		   player.AnimInfo.currentFrame,
+		   player._pAFNum);
+
 	bool didhit = false;
 
 	if (player.AnimInfo.currentFrame == player._pAFNum - 1) {
