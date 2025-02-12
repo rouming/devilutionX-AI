@@ -824,6 +824,8 @@ void RunGameLoop(interface_mode uMsg)
 	gbProcessPlayers = IsDiabloAlive(true);
 	gbRunGameResult = true;
 
+	printf(">> %s\n", __func__);
+
 	RedrawEverything();
 	if (!HeadlessMode) {
 		while (IsRedrawEverything()) {
@@ -2501,17 +2503,27 @@ bool StartGame(bool bNewGame, bool bSinglePlayer)
 	gbSelectProvider = true;
 	ReturnToMainMenu = false;
 
+	printf(">> %s: newgame=%d, single=%d\n", __func__,
+		   bNewGame, bSinglePlayer);
+
 	do {
 		gbLoadGame = false;
 
+		printf(">> %s:%d\n", __func__, __LINE__);
+
 		if (!NetInit(bSinglePlayer)) {
 			gbRunGameResult = true;
+			printf(">> %s:%d\n", __func__, __LINE__);
 			break;
 		}
+
+		printf(">> %s:%d\n", __func__, __LINE__);
 
 		// Save 2.8 MiB of RAM by freeing all main menu resources
 		// before starting the game.
 		UiDestroy();
+
+		printf(">> %s:%d\n", __func__, __LINE__);
 
 		gbSelectProvider = false;
 
@@ -2522,6 +2534,8 @@ bool StartGame(bool bNewGame, bool bSinglePlayer)
 			InitDungMsgs(*MyPlayer);
 			DeltaSyncJunk();
 		}
+		printf(">> %s:%d\n", __func__, __LINE__);
+		
 		giNumberOfLevels = gbIsHellfire ? 25 : 17;
 		interface_mode uMsg = WM_DIABNEWGAME;
 		if (gbValidSaveFile && gbLoadGame) {
