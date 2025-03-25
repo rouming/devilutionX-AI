@@ -667,6 +667,8 @@ struct GameplayOptions : OptionCategoryBase {
 	OptionEntryInt<int> gameAndPlayerSeed;
 	/** @brief Load player into the level on a new game start */
 	OptionEntryInt<int> gameLevel;
+	/** @brief Disable all monsters. */
+	OptionEntryBoolean noMonsters;
 };
 
 struct ControllerOptions : OptionCategoryBase {
