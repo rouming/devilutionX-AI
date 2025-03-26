@@ -187,25 +187,32 @@ class DiabloEnv(gym.Env):
         # Starting dungeon level
         self.start_dungeon_level = d.player.plrlevel
 
-        env_status = self.get_env_status(d)
-        env = diablo_state.get_environment(d, radius=self.env_radius)
+        #env_status = self.get_env_status(d)
+        #env = diablo_state.get_environment(d, radius=self.env_radius)
+        env = diablo_state.get_surroundings(d, radius=self.env_radius, t=np.uint8)
 
         self.action_space = gym.spaces.Discrete(len(DiabloEnv.ActionEnum))
 
-        env_high = (1 << len(diablo_state.EnvironmentFlag)) - 1
+        #env_high = (1 << len(diablo_state.EnvironmentFlag)) - 1
         # Don't forget to change dtype if does not fit max number of bits
-        assert env_high <= np.iinfo(env.dtype).max
-        self.observation_space = gym.spaces.Dict({
-                "env-status":  gym.spaces.Box(low=0,
-                                              high=0xffffff,
-                                              shape=env_status.shape,
-                                              dtype=env_status.dtype),
-                "environment": gym.spaces.Box(low=0,
-                                              high=env_high,
-                                              shape=env.shape,
-                                              dtype=env.dtype),
-            }
-        )
+        #assert env_high <= np.iinfo(env.dtype).max
+
+        # self.observation_space = gym.spaces.Dict({
+        #         "env-status":  gym.spaces.Box(low=0,
+        #                                       high=0xffffff,
+        #                                       shape=env_status.shape,
+        #                                       dtype=env_status.dtype),
+        #         "environment": gym.spaces.Box(low=0,
+        #                                       high=env_high,
+        #                                       shape=env.shape,
+        #                                       dtype=env.dtype),
+        #     }
+        # )
+
+        self.observation_space = gym.spaces.Box(low=0,
+                                                high=0xff,
+                                                shape=env.shape,
+                                                dtype=np.uint8)
 
         # XXX This is a nasty kludge to prevent RLlib from spawning
         # XXX an extra runner for training, even though we do evaluation.
@@ -261,8 +268,9 @@ class DiabloEnv(gym.Env):
             time.sleep(0.01)
 
         d = copy.deepcopy(self.game.state)
-        env_status = self.get_env_status(d)
-        env = diablo_state.get_environment(d, radius=self.env_radius)
+        #env_status = self.get_env_status(d)
+        #env = diablo_state.get_environment(d, radius=self.env_radius)
+        env = diablo_state.get_surroundings(d, radius=self.env_radius, t=np.uint8)
 
         obj_cnt = diablo_state.count_active_objects(d)
         closed_doors_ids = diablo_state.get_closed_doors_ids(d)
@@ -288,10 +296,12 @@ class DiabloEnv(gym.Env):
         self.last_steps_cnt = 0
         self.steps_cnt = 0
 
-        init_obs = {
-            "env-status":  env_status,
-            "environment": env,
-        }
+        # init_obs = {
+        #     "env-status":  env_status,
+        #     "environment": env,
+        # }
+
+        init_obs = env
 
         # Probability is always 1.0, diablo environment is deterministic
         init_info = {
@@ -544,8 +554,9 @@ class DiabloEnv(gym.Env):
         if self.hist_player_pos[0] != pos:
             self.hist_player_pos.appendleft(pos)
 
-        env_status = self.get_env_status(d)
-        env = diablo_state.get_environment(d, radius=self.env_radius)
+        #env_status = self.get_env_status(d)
+        #env = diablo_state.get_environment(d, radius=self.env_radius)
+        env = diablo_state.get_surroundings(d, radius=self.env_radius, t=np.uint8)
 
         reward, done, truncated, action_mask = self.evaluate_step(d, env, action)
         self.total_reward += reward
@@ -553,10 +564,13 @@ class DiabloEnv(gym.Env):
         if done:
             print("EPISODE DONE, total R %.1f" % self.total_reward, file=self.log)
 
-        next_obs = {
-            "env-status":  env_status,
-            "environment": env,
-        }
+        # next_obs = {
+        #     "env-status":  env_status,
+        #     "environment": env,
+        # }
+
+        next_obs = env
+
         # Probability is always 1.0, diablo environment is deterministic
         next_info = {
             "prob": 1.0,
