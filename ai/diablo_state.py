@@ -626,9 +626,9 @@ def get_environment(d, radius=None):
 
     return env
 
-def get_surroundings(d, radius):
+def get_surroundings(d, radius, t=str):
     env = get_environment(d, radius)
-    surroundings = np.full(env.shape, ' ', dtype=str)
+    surroundings = np.full(env.shape, ' ' if t == str else ord(' '), dtype=t)
 
     for i, row in enumerate(env):
         for j, tile in enumerate(row):
@@ -662,7 +662,7 @@ def get_surroundings(d, radius):
                 s = '%'
             if tile & EnvironmentFlag.Monster.value:
                 s = '@'
-            if tile & EnvironmentFlag.Player.value:
+            if t == str and tile & EnvironmentFlag.Player.value:
                 if is_player_dead(d):
                     s = 'X'
                 else:
@@ -684,7 +684,10 @@ def get_surroundings(d, radius):
                             s = "\u2190"
                         case Direction.NorthWest.value:
                             s = "\u2196"
-            surroundings[i, j] = s
+            elif tile & EnvironmentFlag.Player.value:
+                # XXX Simplified representation for AI
+                s = 'X' if is_player_dead(d) else '*'
+            surroundings[i, j] = s if t == str else ord(s)
 
     return surroundings
 
