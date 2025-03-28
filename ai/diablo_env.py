@@ -139,7 +139,7 @@ class DiabloEnv(gym.Env):
             # Update seed for further diablo run call
             env_config["seed"] = self.seed
         self.paused = False
-        self.env_radius = None
+        self.env_radius = [10, 10]
 
         self.log_to_stdout = self.config['--log-to-stdout'] \
             if '--log-to-stdout' in self.config else 0
@@ -491,7 +491,7 @@ class DiabloEnv(gym.Env):
                     opened = [o for o in opened if o not in self.opened_doors_ids]
                     self.opened_doors_ids.extend(opened)
                     if len(opened):
-                        reward += len(opened) * 5.0
+                        reward += len(opened) * 10.0
                         print("Open door, R %.1f" % reward, file=self.log)
                 self.prev_closed_doors_ids = closed_doors_ids
             if items_cnt != self.prev_items_cnt:
