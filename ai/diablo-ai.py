@@ -535,8 +535,17 @@ def ai(args, gameconfig):
         .callbacks(DiabloEnvCallback)
         .training(
             train_batch_size=args['--train-batch-size'],
-            lr=tune.grid_search([0.01, 0.005, 0.003, 0.001, 0.0001])
-            if args['--tune'] else 0.001
+#            lr=tune.grid_search([0.01, 0.005, 0.003, 0.001, 0.0001]) \
+#               if args['--tune'] else 0.0001
+            # Reduce batch size, large batch sizes causes instability.
+            # If batch is too large, the policy updates may be too slow to adapt,
+            # or bad updates aplified.
+#            train_batch_size_per_learner=4000,
+#            minibatch_size=512,
+            # Reduce learning rate
+            lr=0.0003,
+            # Encourage exploration
+            entropy_coeff=0.025,
         )
         .evaluation(evaluation_num_env_runners=0)
         .api_stack(enable_rl_module_and_learner=NEW_API_STACK,
