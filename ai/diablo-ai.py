@@ -382,6 +382,12 @@ def display_matrix(dunwin, m):
         for col in range(cols):
             _addch(dunwin, row + y_off, col + x_off, m[col, row])
 
+ts = 0
+XXX_labeled_regions = None
+XXX_regions_doors = None
+XXX_regions_path = None
+XXX_path_doors = None
+
 def display_dungeon(d, stdscr):
     height, width = stdscr.getmaxyx()
     dunwin = stdscr.subwin(height - (4 + 1), width, 4, 0)
@@ -389,6 +395,80 @@ def display_dungeon(d, stdscr):
     surroundings = diablo_state.get_surroundings(d, radius)
 
     display_matrix(dunwin, surroundings)
+
+    def display_matrix2(m):
+        cols, rows = m.shape
+
+        for row in range(rows):
+            for col in range(cols):
+                v = m[col, row]
+                l = len(str(v))
+                print(m[col, row], end=' ' if l == 1 else '', file=sys.stderr)
+            print(file=sys.stderr)
+
+    global ts, XXX_labeled_regions, XXX_regions_doors, XXX_regions_path, XXX_path_doors
+    if ts == 0:
+        ts = time.time()
+
+    #XXX
+    if time.time() - ts >= 1:
+
+        nxtlvl_trig = diablo_state.find_trigger(d, diablo_state.interface_mode.WM_DIABNEXTLVL)
+        assert nxtlvl_trig is not None
+        # So our goal is the trigger to the next level
+        start = diablo_state.player_position(d)
+        goal = (nxtlvl_trig.position.x, nxtlvl_trig.position.y)
+
+        XXX_regions_doors, XXX_labeled_regions, XXX_regions_path, XXX_path_doors = \
+            diablo_state.get_dungeon_graph_and_path(d, start, goal)
+        ts = 9999999999999999
+    elif XXX_labeled_regions is not None:
+        labeled_regions = XXX_labeled_regions
+        regions_doors = XXX_regions_doors
+        regions_path = XXX_regions_path
+        path_doors = XXX_path_doors
+        import maze
+
+        #XXX
+        display_matrix2(labeled_regions)
+
+        print("Path consists of regions:", file=sys.stderr)
+        for r in regions_path:
+            print(f"{r}", file=sys.stderr)
+
+        print("Path doors:", file=sys.stderr)
+        for dd in path_doors:
+            print(f"{dd}", file=sys.stderr)
+
+        for r, doors in regions_doors.items():
+            print(f"Region: {r} has doors:", file=sys.stderr)
+            for k,v in doors.items():
+                print(f"{k}={v}", file=sys.stderr)
+
+        pos = diablo_state.player_position(d)
+        current_region = labeled_regions[pos]
+        # When the player is not in the doorway and the region is valid
+        if current_region != 0:
+            doors_here = regions_doors[current_region]
+            #for door in doors_here:
+            #    dist = maze.manhattan_dist(door, pos)
+            #    print("D(%d,%d), dist %d, reg %d" % (door[0], door[1], dist, current_region), file=sys.stderr)
+
+            # Controls decay smoothness
+            lambda_factor = 0.3
+            # Only door which is on the path does not have any discount
+            discount = lambda door: 0 if door in path_doors else 2
+            dists = np.array([(maze.euclidean_dist(pos, door) + discount(door)) * lambda_factor
+                              for door in doors_here])
+            reward = 1 / (1 + dists.min())
+            # Every region that is on the path and closer to the goal
+            # provides more reward
+            reward += regions_path.index(current_region) \
+                if current_region in regions_path else 0
+
+            print("R %.3f" % reward, file=sys.stderr)
+
+
 
 def display_diablo_state(game, stdscr, envlog_fd, missed_ticks):
     # Unfortunately (performance-wise) we have to make a deep copy to
