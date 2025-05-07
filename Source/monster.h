@@ -486,7 +486,6 @@ extern size_t LevelMonsterTypeCount;
 extern Monster Monsters[MaxMonsters];
 extern unsigned ActiveMonsters[MaxMonsters];
 extern size_t ActiveMonsterCount;
-/** Tracks the total number of monsters killed per monster_id. */
 extern int MonsterKillCounts[NUM_MTYPES];
 extern bool sgbSaveSoundOn;
 

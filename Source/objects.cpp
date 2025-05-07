@@ -51,10 +51,10 @@
 
 namespace devilution {
 
-extern Object Objects[MAXOBJECTS];
-extern int AvailableObjects[MAXOBJECTS];
-extern int ActiveObjects[MAXOBJECTS];
-extern int ActiveObjectCount;
+Object Objects[MAXOBJECTS];
+int AvailableObjects[MAXOBJECTS];
+int ActiveObjects[MAXOBJECTS];
+int ActiveObjectCount;
 bool LoadingMapObjects;
 
 namespace {

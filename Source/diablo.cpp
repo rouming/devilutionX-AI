@@ -99,7 +99,6 @@
 #include "utils/status_macros.hpp"
 #include "utils/str_cat.hpp"
 #include "utils/utf8.hpp"
-#include "utils/shared.h"
 
 #ifndef USE_SDL1
 #include "controls/touch/gamepad.h"
@@ -126,7 +125,7 @@ bool ReturnToMainMenu;
 bool gbProcessPlayers;
 bool gbLoadGame;
 bool cineflag;
-extern int PauseMode;
+int PauseMode;
 clicktype sgbMouseDown;
 uint16_t gnTickDelay = 50;
 char gszProductName[64] = "DevilutionX vUnknown";
@@ -2592,12 +2591,6 @@ int DiabloMain(int argc, char **argv)
 	LuaInitialize();
 	SaveOptions();
 
-	if (!(*GetOptions().Gameplay.shareGameStateFilename).empty()) {
-		// Share whole diablo state
-		shared::share_diablo_state(paths::ConfigPath() + "/" +
-					   *GetOptions().Gameplay.shareGameStateFilename);
-	}
-
 	// Finally load game data
 	LoadGameArchives();
 
@@ -3433,10 +3426,6 @@ bool game_loop(bool bStartup)
 		if (!gbRunGame || !gbIsMultiplayer || demo::IsRunning() || demo::IsRecording() || !nthread_has_500ms_passed())
 			break;
 	}
-
-	if (!(*GetOptions().Gameplay.shareGameStateFilename).empty())
-		update_shared_state();
-
 	return true;
 }
 

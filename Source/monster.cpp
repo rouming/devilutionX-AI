@@ -63,12 +63,12 @@
 namespace devilution {
 
 CMonster LevelMonsterTypes[MaxLvlMTypes];
-extern size_t LevelMonsterTypeCount;
-extern Monster Monsters[MaxMonsters];
-extern unsigned ActiveMonsters[MaxMonsters];
-extern size_t ActiveMonsterCount;
+size_t LevelMonsterTypeCount;
+Monster Monsters[MaxMonsters];
+unsigned ActiveMonsters[MaxMonsters];
+size_t ActiveMonsterCount;
 /** Tracks the total number of monsters killed per monster_id. */
-extern int MonsterKillCounts[NUM_MTYPES];
+int MonsterKillCounts[NUM_MTYPES];
 bool sgbSaveSoundOn;
 
 namespace {

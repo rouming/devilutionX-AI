@@ -24,8 +24,8 @@
 namespace devilution {
 
 bool trigflag;
-extern int numtrigs;
-extern TriggerStruct trigs[MAXTRIGGERS];
+int numtrigs;
+TriggerStruct trigs[MAXTRIGGERS];
 int TWarpFrom;
 
 namespace {
