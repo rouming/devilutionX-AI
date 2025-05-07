@@ -273,6 +273,28 @@ std::string_view OptionEntryBoolean::GetValueDescription() const
 	return value ? _("ON") : _("OFF");
 }
 
+void OptionEntryString::LoadFromIni(std::string_view category)
+{
+	value = ini->getString(category, key, defaultValue);
+}
+void OptionEntryString::SaveToIni(std::string_view category) const
+{
+	ini->set(category, key, value);
+}
+void OptionEntryString::SetValue(std::string value)
+{
+	this->value = value;
+	this->NotifyValueChanged();
+}
+OptionEntryType OptionEntryString::GetType() const
+{
+	return OptionEntryType::String;
+}
+std::string_view OptionEntryString::GetValueDescription() const
+{
+	return value;
+}
+
 OptionEntryType OptionEntryListBase::GetType() const
 {
 	return OptionEntryType::List;
