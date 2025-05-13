@@ -902,4 +902,61 @@ def main():
         print("Not supported yet")
 
 if __name__ == "__main__":
-    main()
+#    main()
+
+    variables = [
+        "devilution::shared::input_queue",
+        "devilution::shared::events_queue",
+        "devilution::shared::player",
+        "devilution::shared::game_ticks",
+        "devilution::shared::game_saves",
+        "devilution::shared::game_loads",
+
+        # Monsters
+
+        "devilution::LevelMonsterTypeCount",
+        "devilution::ActiveMonsterCount",
+        "devilution::Monsters",
+        "devilution::ActiveMonsters",
+        "devilution::MonsterKillCounts",
+
+        # Objects
+
+        "devilution::Objects",
+        "devilution::ActiveObjects",
+        "devilution::ActiveObjectCount",
+
+        # Diablo
+
+        "devilution::PauseMode",
+
+        # Items
+
+        "devilution::ActiveItemCount",
+        "devilution::dItem",
+
+        # Gendung
+
+        "devilution::dFlags",
+        "devilution::dMonster",
+        "devilution::dObject",
+        "devilution::dPiece",
+        "devilution::dSpecial",
+        "devilution::SOLData",
+
+        # Trigs
+
+        "devilution::numtrigs",
+        "devilution::trigs",
+    ]
+
+    import dbg2ctypes
+
+    module_path = "devilutionx.py"
+    content, regenerate = dbg2ctypes.generate_ctypes_module(
+        variables, "../build/devilutionx", module_path)
+    if regenerate:
+        open(module_path, "w").writelines(content)
+
+    import devilutionx
+    assert len(devilutionx.VARS) == len(variables)
